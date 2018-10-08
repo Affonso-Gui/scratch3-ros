@@ -1,0 +1,98 @@
+<launch>
+  
+  <arg name="ROBOT" default="$(optenv ROBOT sim)"/>
+  <include file="$(find pr2_machine)/$(arg ROBOT).machine" />
+
+  <arg name="MANAGER" value="plane_detection_manager" />
+
+  <arg name="INPUT_CLOUD" default="/kinect_head/depth_registered/quater/points" />
+  <arg name="INPUT_INFO" default="/kinect_head/depth_registered/camera_info" />
+  
+  <node name="$(arg MANAGER)" pkg="nodelet" type="nodelet" args="manager"
+	machine="c2"/>
+
+  <node name="input_relay" pkg="nodelet" type="nodelet"
+        args="load jsk_topic_tools/Relay $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="$(arg INPUT_CLOUD)" />
+  </node>
+
+  
+  <!-- EXTRACT WORKSPACE POINTS -->
+  
+  <node name="attention_clipper_workspace"
+	pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/AttentionClipper $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="$(arg INPUT_INFO)" />
+    <remap from="~input/points" to="input_relay/output" />
+    <rosparam>
+      dimension_x: 1.0
+      dimension_z: 1.0
+      dimension_y: 1.0
+      initial_pos: [0.5, 0.0, 1.0]
+      initial_rot: [0.0, 0.0, 0.0]
+    </rosparam>
+  </node>
+
+  <node name="workspace_points"
+	pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/ExtractIndices $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="input_relay/output" />
+    <remap from="~indices" to="attention_clipper_workspace/output/point_indices" />
+    <rosparam>
+      keep_organized: true
+    </rosparam>
+  </node>
+
+  
+  <!-- EXTRACT TABLE POINTS -->
+  
+  <node name="multi_plane_estimate" pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/OrganizedMultiPlaneSegmentation $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="workspace_points/output" />
+    <rosparam>
+      distance_threshold: 0.1
+      max_curvature: 0.02
+      estimation_method: 0
+    </rosparam>
+  </node>
+
+  <node name="multi_plane_extraction" pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/MultiPlaneExtraction $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="workspace_points/output" />
+    <remap from="~indices" to="multi_plane_estimate/output" />
+    <remap from="~input_polygons" to="multi_plane_estimate/output_polygon" />
+    <remap from="~input_coefficients" to="multi_plane_estimate/output_coefficients" />
+    <rosparam>
+      min_height: 0.03
+      max_height: 0.20
+    </rosparam>
+  </node>
+
+  <node name="euclidean_clustering"
+	pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/EuclideanClustering $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="multi_plane_extraction/output" />
+  </node>
+
+  <!-- align with link -->
+  <node name="euclidean_clustering_decomposer"
+	pkg="nodelet" type="nodelet"
+	args="load jsk_pcl/ClusterPointIndicesDecomposer $(arg MANAGER)"
+	machine="c2">
+    <remap from="~input" to="multi_plane_extraction/output"/>
+    <remap from="~target" to="euclidean_clustering/output" />
+    <remap from="~boxes" to="detection_boxes" />
+    <rosparam>
+      align_boxes: true
+      align_boxes_with_plane: false
+      target_frame_id: base_footprint
+    </rosparam>
+  </node>
+
+</launch>

@@ -1,8 +1,14 @@
 <launch>
 
   <include file="$(find pr2_moveit_config)/launch/move_group.launch"/>
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="topics_glob" value="[/joint_states, /r_gripper_controller/*, /robotsound/*, /movescratch/*, /move_group/result, /detection_boxes]"/>
+    <arg name="services_glob" value="[/rosout/*]"/>
+  </include>
+
   <include file="$(find scratch3-ros)/launch/tabletop_detection.launch"/>
-  <node pkg="scratch3-ros" type="moveit_server.py" name="moveit_server"/>
+
+  <node pkg="scratch3-ros" type="moveit_server.py" name="moveit_server" respawn="true"/>
 
 </launch>

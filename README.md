@@ -12,8 +12,8 @@ Access [https://affonso-gui.github.io/scratch-gui](https://affonso-gui.github.io
 
 ### Run from source
 
-```
-apt install npm
+```bash
+sudo apt install npm # Tested with versions 6.4.0 and 10.12.0
 mkdir Scratch; cd Scratch
 git clone https://github.com/Affonso-Gui/scratch-vm.git
 git clone https://github.com/Affonso-Gui/scratch-gui.git

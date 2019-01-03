@@ -1,5 +1,7 @@
 ## ROS Extension for Scratch 3
 
+### This Project has been moved to https://github.com/Affonso-Gui/scratch-vm/tree/develop/src/extensions/scratch3_ros
+
 **WORK IN PROGRESS**
 
 ![scratch3-ros](https://user-images.githubusercontent.com/20625381/46603998-c394a400-cb2f-11e8-82e3-a8a6c39050d0.png)
